@@ -231,6 +231,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Remote_Sensing_Image_Changes_to_Captions')
 
     parser.add_argument('--data_folder', default='./data/LEVIR_CC',help='folder with data files')
+    parser.add_argument('--dataset', default='LEVIR_CC',help='folder with data files')
 
     args = parser.parse_args()
     main(args)
