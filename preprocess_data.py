@@ -232,6 +232,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--data_folder', default='./data/LEVIR_CC',help='folder with data files')
     parser.add_argument('--dataset', default='LEVIR_CC',help='folder with data files')
+    parser.add_argument('--word_count_threshold', default=5, type=int, help='word threshold')
 
     args = parser.parse_args()
     main(args)
