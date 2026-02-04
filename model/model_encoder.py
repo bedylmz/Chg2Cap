@@ -193,10 +193,11 @@ class AttentiveEncoder(nn.Module):
     """
     One visual transformer block
     """
-    def __init__(self, n_layers, feature_size, heads, hidden_dim, attention_dim = 512, dropout = 0.):
+    def __init__(self, n_layers, feature_size, heads, hidden_dim, attention_dim = 512, dropout = 0., network='resnet101'):
         super(AttentiveEncoder, self).__init__()
         h_feat, w_feat, channels = feature_size
-        
+        self.network = network
+
         self.h_embedding = nn.Embedding(h_feat, int(channels/2))
         self.w_embedding = nn.Embedding(w_feat, int(channels/2))
         self.selftrans = nn.ModuleList([])
@@ -215,30 +216,58 @@ class AttentiveEncoder(nn.Module):
                 nn.init.xavier_uniform_(p)
 
     def forward(self, img1, img2):
-        batch, c, h, w = img1.shape
-        pos_h = torch.arange(h).cuda()
-        pos_w = torch.arange(w).cuda()
-        embed_h = self.w_embedding(pos_h)
-        embed_w = self.h_embedding(pos_w)
-        pos_embedding = torch.cat([embed_w.unsqueeze(0).repeat(h, 1, 1),
-                                       embed_h.unsqueeze(1).repeat(1, w, 1)], 
-                                       dim = -1)                            
-        pos_embedding = pos_embedding.permute(2,0,1).unsqueeze(0).repeat(batch, 1, 1, 1)
-        img1 = img1 + pos_embedding
-        img2 = img2 + pos_embedding
-        img1 = img1.view(batch, c, -1).transpose(-1, 1)#batch, hw, c
-        img2 = img2.view(batch, c, -1).transpose(-1, 1)
-        img_sa1, img_sa2 = img1, img2
 
-        for (l, m) in self.selftrans:           
-            img_sa1 = l(img_sa1, img_sa1, img_sa1) + img_sa1
-            img_sa2 = l(img_sa2, img_sa2, img_sa2) + img_sa2
-            img = torch.cat([img_sa1, img_sa2], dim = -1)
-            img = m(img, img, img)
-            img_sa1 = img[:,:,:c] + img1
-            img_sa2 = img[:,:,c:] + img2
+        if('resnet' in self.network):
+            batch, c, h, w = img1.shape
+            pos_h = torch.arange(h).cuda()
+            pos_w = torch.arange(w).cuda()
+            embed_h = self.w_embedding(pos_h)
+            embed_w = self.h_embedding(pos_w)
+            pos_embedding = torch.cat([embed_w.unsqueeze(0).repeat(h, 1, 1),
+                                        embed_h.unsqueeze(1).repeat(1, w, 1)], 
+                                        dim = -1)                            
+            pos_embedding = pos_embedding.permute(2,0,1).unsqueeze(0).repeat(batch, 1, 1, 1)
+            img1 = img1 + pos_embedding
+            img2 = img2 + pos_embedding
+            img1 = img1.view(batch, c, -1).transpose(-1, 1)#batch, hw, c
+            img2 = img2.view(batch, c, -1).transpose(-1, 1)
+            img_sa1, img_sa2 = img1, img2
 
-        img1 = img_sa1.reshape(batch, h, w, c).transpose(-1, 1)
-        img2 = img_sa2.reshape(batch, h, w, c).transpose(-1, 1)
+            for (l, m) in self.selftrans:           
+                img_sa1 = l(img_sa1, img_sa1, img_sa1) + img_sa1
+                img_sa2 = l(img_sa2, img_sa2, img_sa2) + img_sa2
+                img = torch.cat([img_sa1, img_sa2], dim = -1)
+                img = m(img, img, img)
+                img_sa1 = img[:,:,:c] + img1
+                img_sa2 = img[:,:,c:] + img2
+
+            img1 = img_sa1.reshape(batch, h, w, c).transpose(-1, 1)
+            img2 = img_sa2.reshape(batch, h, w, c).transpose(-1, 1)
+
+        elif('clip' in self.network):
+            batch, dim = img1.shape
+            img1 = img1.unsqueeze(1) # Şekil: (Batch, 1, Dim)
+            img2 = img2.unsqueeze(1) # Şekil: (Batch, 1, Dim)
+
+            img_sa1, img_sa2 = img1, img2
+
+            # 2. Döngü (Self ve Cross Attention Mantığı)
+            for (l, m) in self.selftrans:
+                img_sa1 = l(img_sa1, img_sa1, img_sa1) + img_sa1
+                img_sa2 = l(img_sa2, img_sa2, img_sa2) + img_sa2
+                
+                img = torch.cat([img_sa1, img_sa2], dim=-1)
+                
+                img = m(img, img, img)
+                
+                img_sa1 = img[:, :, :dim] + img1
+                img_sa2 = img[:, :, dim:] + img2
+                img1 = img_sa1
+                img2 = img_sa2
+
+            # 3. Boyutları eski haline getir (Squeeze)
+            # (Batch, 1, Dim) -> (Batch, Dim)
+            img1 = img_sa1.squeeze(1)
+            img2 = img_sa2.squeeze(1)
 
         return img1, img2
