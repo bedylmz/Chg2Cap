@@ -20,8 +20,8 @@ SPECIAL_TOKENS = {
 
 def main(args):
     if args.dataset == 'LEVIR_CC':
-        input_captions_json = '/root/Data/LEVIR_CC/LevirCCcaptions.json'
-        input_image_dir = '/root/Data/LEVIR_CC/images'
+        input_captions_json = args.data_folder + '/LevirCCcaptions.json'
+        input_image_dir = args.data_folder + '/images'
         input_vocab_json = ''
         output_vocab_json = 'vocab.json'
         save_dir = './data/LEVIR_CC/'
@@ -228,5 +228,11 @@ def encode(seq_tokens, token_to_idx, allow_unk=False):
     return seq_idx
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Remote_Sensing_Image_Changes_to_Captions')
+
+    parser.add_argument('--data_folder', default='./data/LEVIR_CC',help='folder with data files')
+
     args = parser.parse_args()
     main(args)
+
+
