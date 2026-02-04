@@ -233,16 +233,16 @@ class CLIPTransformerBlock(nn.Module):
         attn_output, _ = self.attn(q, k, v, attn_mask=attn_mask)
         
         # Residual Connection (x + Attention)
-        x = x + attn_output
+        q = q + attn_output
         
         # --- Blok 2: FeedForward ---
         # Pre-Norm: Önce Norm, sonra MLP
-        mlp_output = self.mlp(self.ln_2(x))
+        mlp_output = self.mlp(self.ln_2(q))
         
         # Residual Connection (x + MLP)
-        x = x + mlp_output
+        q = q + mlp_output
         
-        return x
+        return q
 
 class AttentiveEncoder(nn.Module):
     """
