@@ -118,10 +118,10 @@ class Encoder(nn.Module):
 
         :param fine_tune: Allow?
         """
-        for p in self.cnn.parameters():
+        for p in self.model.parameters():
             p.requires_grad = False
         # If fine-tuning, only fine-tune convolutional blocks 2 through 4
-        for c in list(self.cnn.children())[5:]:
+        for c in list(self.model.children())[5:]:
             for p in c.parameters():
                 p.requires_grad = fine_tune
 
