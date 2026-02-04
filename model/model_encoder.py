@@ -213,16 +213,16 @@ class CLIPTransformerBlock(nn.Module):
             nn.Dropout(dropout)
         )
 
-    def forward(self, x, attn_mask=None):
+    def forward(self, q, k, v, attn_mask=None):
         # x shape: [Batch, Seq_Len, D_Model]
         
         # --- Blok 1: Attention ---
         # CLIP Mimarisinde Pre-Norm: Önce Norm, sonra Attention
-        norm_x = self.ln_1(x)
+        q, k, v = self.ln_1(q), self.ln_1(k), self.ln_1(v)
         
         # Self-Attention: Q, K, V hepsi aynı (norm_x)
         # attn_mask: Metin kodlayıcı için maske (causal mask) gereklidir.
-        attn_output, _ = self.attn(norm_x, norm_x, norm_x, attn_mask=attn_mask)
+        attn_output, _ = self.attn(q, k, v, attn_mask=attn_mask)
         
         # Residual Connection (x + Attention)
         x = x + attn_output
