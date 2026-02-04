@@ -215,6 +215,14 @@ class CLIPTransformerBlock(nn.Module):
 
     def forward(self, q, k, v, attn_mask=None):
         # x shape: [Batch, Seq_Len, D_Model]
+
+        dtype = self.ln_1.weight.dtype
+        if q.dtype != dtype:
+            q = q.to(dtype)
+        if k.dtype != dtype:
+            k = k.to(dtype)
+        if v.dtype != dtype:
+            v = v.to(dtype)
         
         # --- Blok 1: Attention ---
         # CLIP Mimarisinde Pre-Norm: Önce Norm, sonra Attention
