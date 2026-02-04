@@ -93,6 +93,7 @@ class Encoder(nn.Module):
             clip = EncoderClip("./modules/ViT-B-32.pt")
 
         if('clip' in self.network):
+            print("flaggggggggg")
             self.model = clip
         else:
             self.model = nn.Sequential(*modules)

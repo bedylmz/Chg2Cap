@@ -197,7 +197,7 @@ if __name__ == '__main__':
     #parser.add_argument('--data_name', default="Dubai_CC",help='base name shared by data files.')
     #parser.add_argument('--checkpoint', default='Dubai_CC_batchsize_32_resnet101.pth', help='path to checkpoint, None if none.')
 
-    parser.add_argument('--network', default='clip_og', help='define the encoder to extract features:resnet101,vgg16')
+    parser.add_argument('--network', default='resnet101', help='define the encoder to extract features:resnet101,vgg16')
     parser.add_argument('--gpu_id', type=int, default=0, help='gpu id in the training.')
     parser.add_argument('--workers', type=int, default=2, help='for data-loading; right now, only 0 works with h5pys in windows.')
     parser.add_argument('--encoder_dim',default=2048, help='the dimension of extracted features using different network:2048,512')
