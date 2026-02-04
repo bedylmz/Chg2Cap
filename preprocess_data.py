@@ -96,9 +96,6 @@ def main(args):
                 f.write(img + '\n')
                 f.close()     
 
-
-
-
     elif args.dataset == 'Dubai_CC': 
         filename = os.listdir(input_captions_json)
         max_length = -1
@@ -155,8 +152,6 @@ def main(args):
                     f = open(os.path.join(save_dir + 'test' + '.txt'), 'a')
                     f.write(img + '\n')
                     f.close()   
-
- 
 
     print('max_length of the dataset:', max_length)
     # Either create the vocab or load it from disk

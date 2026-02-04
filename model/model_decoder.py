@@ -201,7 +201,7 @@ class DecoderTransformer(nn.Module):
         self.Conv1 = nn.Conv2d(encoder_dim*2, feature_dim, kernel_size = 1)
         self.LN = resblock(feature_dim, feature_dim)
         # embedding layer
-        self.vocab_embedding = nn.Embedding(vocab_size, self.embed_dim)  # vocaburaly embedding
+        self.vocab_embedding = nn.Embedding(vocab_size, self.embed_dim)  # vocabulary embedding
         # Transformer layer
         decoder_layer = Mesh_TransformerDecoderLayer(feature_dim, n_head, dim_feedforward=feature_dim * 4,
                                                    dropout=self.dropout)

@@ -2,6 +2,29 @@ import torch
 from torch import nn
 import torchvision.models as models
 from einops import rearrange
+import torchvision.transforms as transforms
+
+
+class EncoderClip(nn.Module):
+    def __init__(self, path = "/content/modules/ViT-B-32.pt"): # hard coded for now
+        super(EncoderClip, self).__init__()
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self.model = torch.jit.load(path, map_location=self.device).eval()
+
+        self.preprocess = transforms.Compose([
+            transforms.Resize(224, interpolation=transforms.InterpolationMode.BICUBIC),
+            transforms.CenterCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+        ])
+        self.model.eval()
+
+    def forward(self, img):
+        image = self.preprocess(img).unsqueeze(0).to(self.device)
+
+        # Özellikleri çıkar (Encode)
+        with torch.no_grad():
+            return self.model.encode_image(image)
 
 class Encoder(nn.Module):
     """
@@ -66,11 +89,16 @@ class Encoder(nn.Module):
         elif self.network=='regnet_x_16gf': #2048,1/32H,1/32W
             cnn = models.regnet_x_16gf(pretrained=True) 
             modules = list(cnn.children())[:-2]
+        elif self.network=='clip_og': 
+            clip = EncoderClip("/content/modules/ViT-B-32.pt")
 
-        self.cnn = nn.Sequential(*modules)
-        # Resize image to fixed size to allow input images of variable size
-        # self.adaptive_pool = nn.AdaptiveAvgPool2d((encoded_image_size, encoded_image_size))
-        self.fine_tune()
+        if('clip' in self.network):
+            self.model = clip
+        else:
+            self.model = nn.Sequential(*modules)
+            # Resize image to fixed size to allow input images of variable size
+            # self.adaptive_pool = nn.AdaptiveAvgPool2d((encoded_image_size, encoded_image_size))
+            self.fine_tune()
 
     def forward(self, imageA, imageB):
         """
@@ -79,8 +107,8 @@ class Encoder(nn.Module):
         :param images: images, a tensor of dimensions (batch_size, 3, image_size, image_size)
         :return: encoded images
         """
-        feat1 = self.cnn(imageA)  # (batch_size, 2048, image_size/32, image_size/32)
-        feat2 = self.cnn(imageB)
+        feat1 = self.model(imageA)  # (batch_size, 2048, image_size/32, image_size/32)
+        feat2 = self.model(imageB)
 
         return feat1, feat2
 
@@ -96,7 +124,6 @@ class Encoder(nn.Module):
         for c in list(self.cnn.children())[5:]:
             for p in c.parameters():
                 p.requires_grad = fine_tune
-
 
 class FeedForward(nn.Module):
     def __init__(self, dim, hidden_dim, dropout = 0.):
