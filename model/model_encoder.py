@@ -3,6 +3,7 @@ from torch import nn
 import torchvision.models as models
 from einops import rearrange
 import torchvision.transforms as transforms
+import torch.nn.functional as F
 
 
 class EncoderClip(nn.Module):
@@ -21,15 +22,9 @@ class EncoderClip(nn.Module):
 
     def forward(self, img):
         # image = self.preprocess(img).unsqueeze(0).to(self.device)
-
+        img = F.interpolate(img, size=(224, 224), mode='bicubic', align_corners=False)
         # Özellikleri çıkar (Encode)
         with torch.no_grad():
-
-            print(img.shape)
-            from PIL import Image
-            image = self.preprocess(Image.open("/content/after.png")).unsqueeze(0).to(self.device)
-            print(image.shape)
-            
             return self.model.encode_image(img)
 
 class Encoder(nn.Module):
