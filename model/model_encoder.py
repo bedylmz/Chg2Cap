@@ -188,6 +188,53 @@ class Transformer(nn.Module):
             x = self.norm2(self.feedforward(x) + x)
 
         return x
+    
+class CLIPTransformerBlock(nn.Module):
+    def __init__(self, d_model, heads, dropout=0.):
+        super().__init__()
+        # CLIP d_model (embedding boyutu) ile çalışır
+        self.d_model = d_model
+        self.ln_1 = nn.LayerNorm(d_model)
+        
+        # 2. Multi-Head Self-Attention
+        # CLIP'te genellikle batch_first=True kullanılır
+        self.attn = nn.MultiheadAttention(embed_dim=d_model, num_heads=heads, dropout=dropout, batch_first=True)
+        
+        # 3. Layer Norm (FeedForward öncesi)
+        self.ln_2 = nn.LayerNorm(d_model)
+        
+        # 4. MLP (FeedForward)
+        # CLIP, aktivasyon olarak genellikle QuickGELU veya GELU kullanır.
+        # Genişleme katsayısı (expansion ratio) genellikle 4'tür.
+        self.mlp = nn.Sequential(
+            nn.Linear(d_model, d_model * 4),
+            nn.GELU(), # OpenAI orijinal kodunda QuickGELU kullanır, standart PyTorch'ta GELU yakındır.
+            nn.Linear(d_model * 4, d_model),
+            nn.Dropout(dropout)
+        )
+
+    def forward(self, x, attn_mask=None):
+        # x shape: [Batch, Seq_Len, D_Model]
+        
+        # --- Blok 1: Attention ---
+        # CLIP Mimarisinde Pre-Norm: Önce Norm, sonra Attention
+        norm_x = self.ln_1(x)
+        
+        # Self-Attention: Q, K, V hepsi aynı (norm_x)
+        # attn_mask: Metin kodlayıcı için maske (causal mask) gereklidir.
+        attn_output, _ = self.attn(norm_x, norm_x, norm_x, attn_mask=attn_mask)
+        
+        # Residual Connection (x + Attention)
+        x = x + attn_output
+        
+        # --- Blok 2: FeedForward ---
+        # Pre-Norm: Önce Norm, sonra MLP
+        mlp_output = self.mlp(self.ln_2(x))
+        
+        # Residual Connection (x + MLP)
+        x = x + mlp_output
+        
+        return x
 
 class AttentiveEncoder(nn.Module):
     """
@@ -201,11 +248,18 @@ class AttentiveEncoder(nn.Module):
         self.h_embedding = nn.Embedding(h_feat, int(channels/2))
         self.w_embedding = nn.Embedding(w_feat, int(channels/2))
         self.selftrans = nn.ModuleList([])
-        for i in range(n_layers):                 
-            self.selftrans.append(nn.ModuleList([
-                Transformer(channels, channels, heads, attention_dim, hidden_dim, dropout, norm_first=False),
-                Transformer(channels*2, channels*2, heads, attention_dim, hidden_dim, dropout, norm_first=False),
-            ]))
+        for i in range(n_layers): 
+            if('resnet' in self.network):          
+                self.selftrans.append(nn.ModuleList([
+                    Transformer(channels, channels, heads, attention_dim, hidden_dim, dropout, norm_first=False),
+                    Transformer(channels*2, channels*2, heads, attention_dim, hidden_dim, dropout, norm_first=False),
+                ]))
+            elif('clip' in self.network):
+                self.selftrans.append(nn.ModuleList([
+                    CLIPTransformerBlock(512, heads, dropout),
+                    CLIPTransformerBlock(512*2, heads, dropout),
+                ]))
+
 
         self._reset_parameters()
 
