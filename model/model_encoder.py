@@ -24,6 +24,12 @@ class EncoderClip(nn.Module):
 
         # Özellikleri çıkar (Encode)
         with torch.no_grad():
+
+            print(img.shape)
+            from PIL import Image
+            image = self.preprocess(Image.open("/content/after.png")).unsqueeze(0).to(self.device)
+            print(image.shape)
+            
             return self.model.encode_image(img)
 
 class Encoder(nn.Module):
