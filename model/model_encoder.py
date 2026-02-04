@@ -20,11 +20,11 @@ class EncoderClip(nn.Module):
         self.model.eval()
 
     def forward(self, img):
-        image = self.preprocess(img).unsqueeze(0).to(self.device)
+        # image = self.preprocess(img).unsqueeze(0).to(self.device)
 
         # Özellikleri çıkar (Encode)
         with torch.no_grad():
-            return self.model.encode_image(image)
+            return self.model.encode_image(img)
 
 class Encoder(nn.Module):
     """
